@@ -1,8 +1,7 @@
 import { ipcRenderer, shell } from 'electron';
-import type { AboutWindowInfo } from './index';
+import type { AboutWindowInfo } from './index.js';
 
 ipcRenderer.on('about-window:info', (_: any, info: AboutWindowInfo, app_name: string, version: string) => {
-    // Note: app.getName() was replaced with app.name at Electron v7
     const open_home = () => shell.openExternal(info.homepage);
     const content = info.use_inner_html ? 'innerHTML' : 'innerText';
     document.title = info.win_options.title || `About ${app_name}`;

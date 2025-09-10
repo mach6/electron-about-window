@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "es2020",
     "moduleResolution": "node",
     "removeComments": true,
     "preserveConstEnums": true,
@@ -11,9 +11,13 @@
     "noUnusedParameters": true,
     "noEmitOnError": true,
     "strictNullChecks": false,
-    "target": "es2015",
+    "target": "es2020",
     "sourceMap": true,
-    "declaration": true
+    "declaration": true,
+    "outDir": "../dist",
+    "declarationDir": "../dist",
+    "esModuleInterop": true,
+    "resolveJsonModule": true
   },
   "include": [
     "**/*.ts"

@@ -3,14 +3,13 @@
   "productName": "Example for about-window",
   "version": "1.0.0",
   "description": "Example for about-window npm package",
-  "homepage": "https://github.com/rhysd/electron-about-window#readme",
+  "homepage": "https://github.com/mach6/electron-about-window",
   "bugs": {
-    "url": "https://github.com/rhysd/electron-about-window/issues"
+    "url": "https://github.com/mach6/electron-about-window/issues"
   },
-  "main": "main.js",
+  "main": "main.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "rhysd <lin90162@yahoo.co.jp>",
-  "license": "MIT"
-}
+  "author": "mach6",
+  "license": "MIT"}

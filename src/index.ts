@@ -1,6 +1,7 @@
 import { app as appMain, BrowserWindow as BrowserWindowMain, shell, ipcMain } from 'electron';
 import { statSync } from 'fs';
-import * as path from 'path';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 export interface LicenseEntry {
     type: string;
@@ -8,6 +9,7 @@ export interface LicenseEntry {
 }
 
 export interface PackageJson {
+    name?: string;
     productName?: string;
     description?: string;
     homepage?: string;
@@ -46,17 +48,24 @@ declare namespace NodeJS {
     }
 }
 
-function loadPackageJson(pkg_path: string): PackageJson {
+async function loadPackageJson(pkg_path: string): Promise<PackageJson> {
     try {
-        return require(pkg_path);
+        // Note: `with` is available from Chrome 126, V8 v12.6
+        // @ts-ignore
+        return (await import(pkg_path, { with: { type: 'json' } })).default;
     } catch (e) {
-        return null;
+        // Fallback for older versions
+        try {
+            return (await import(pkg_path)).default;
+        } catch (e2) {
+            return null;
+        }
     }
 }
 
-function detectPackageJson(specified_dir: string, app: Electron.App) {
+async function detectPackageJson(specified_dir: string, app: Electron.App) {
     if (specified_dir) {
-        const pkg = loadPackageJson(path.join(specified_dir, 'package.json'));
+        const pkg = await loadPackageJson(path.join(specified_dir, 'package.json'));
         if (pkg !== null) {
             return pkg;
         } else {
@@ -64,34 +73,38 @@ function detectPackageJson(specified_dir: string, app: Electron.App) {
         }
     }
 
-    // Note: app.getName() was replaced with app.name at Electron v7
     const app_name = app.name || app.getName();
 
-    for (const mod_path of (module as any).paths) {
-        if (!path.isAbsolute(mod_path)) {
-            continue;
-        }
+    let app_path = app.getAppPath();
+    if (app_path.endsWith('.asar')) {
+        app_path = path.dirname(app_path);
+    }
 
-        const p = path.join(mod_path, '..', 'package.json');
+    for (let i = 0; i < 5; i++) {
+        const p = path.join(app_path, 'package.json');
         try {
             const stats = statSync(p);
             if (stats.isFile()) {
-                const pkg = loadPackageJson(p);
-                if (pkg !== null && pkg.productName === app_name) {
-                    return pkg;
+                const pkg = await loadPackageJson(p);
+                if (pkg !== null) {
+                    // In case of monorepo, check app name
+                    if (pkg.productName === app_name || pkg.name === app_name) {
+                        return pkg;
+                    }
                 }
             }
         } catch (e) {
-            // File not found.  Ignored.
+            // File not found. Ignored.
         }
+        app_path = path.join(app_path, '..');
     }
 
     // Note: Not found.
     return null;
 }
 
-function injectInfoFromPackageJson(info: AboutWindowInfo, app: Electron.App) {
-    const pkg = detectPackageJson(info.package_json_dir, app);
+async function injectInfoFromPackageJson(info: AboutWindowInfo, app: Electron.App) {
+    const pkg = await detectPackageJson(info.package_json_dir, app);
     if (pkg === null) {
         // Note: Give up.
         return info;
@@ -126,7 +139,7 @@ function injectInfoFromPackageJson(info: AboutWindowInfo, app: Electron.App) {
 function normalizeParam(info_or_img_path: AboutWindowInfo | string | undefined | null): AboutWindowInfo {
     if (!info_or_img_path) {
         throw new Error(
-            'First parameter of openAboutWindow() must not be empty. Please see the document: https://github.com/rhysd/electron-about-window/blob/master/README.md',
+            'First parameter of openAboutWindow() must not be empty.',
         );
     }
 
@@ -136,14 +149,14 @@ function normalizeParam(info_or_img_path: AboutWindowInfo | string | undefined |
         const info = info_or_img_path;
         if (!info.icon_path) {
             throw new Error(
-                "First parameter of openAboutWindow() must have key 'icon_path'. Please see the document: https://github.com/rhysd/electron-about-window/blob/master/README.md",
+                "First parameter of openAboutWindow() must have key 'icon_path'.",
             );
         }
         return { ...info };
     }
 }
 
-export default function openAboutWindow(info_or_img_path: AboutWindowInfo | string) {
+export default async function openAboutWindow(info_or_img_path: AboutWindowInfo | string) {
     let window: Electron.BrowserWindow = null;
     let info = normalizeParam(info_or_img_path);
 
@@ -164,7 +177,7 @@ export default function openAboutWindow(info_or_img_path: AboutWindowInfo | stri
     let base_path = info.about_page_dir;
 
     if (base_path === undefined || base_path === null || !base_path.length) {
-        base_path = path.join(__dirname, '..');
+        base_path = path.join(path.dirname(fileURLToPath(import.meta.url)), '.');
     }
 
     const index_html = 'file://' + path.join(base_path, 'about.html');
@@ -181,8 +194,7 @@ export default function openAboutWindow(info_or_img_path: AboutWindowInfo | stri
                 // For security reasons, nodeIntegration is no longer true by default when using Electron v5 or later
                 // nodeIntegration can be safely enabled as long as the window source is not remote
                 nodeIntegration: true,
-                // From Electron v12, this option is set to true by default
-                contextIsolation: false,
+                preload: path.join(base_path, 'preload-renderer.mjs'),
             },
         },
         info.win_options || {},
@@ -218,9 +230,9 @@ export default function openAboutWindow(info_or_img_path: AboutWindowInfo | stri
         e.preventDefault();
         shell.openExternal(url);
     });
-    window.webContents.on('new-window', (e, url) => {
-        e.preventDefault();
+    window.webContents.setWindowOpenHandler(({ url }) => {
         shell.openExternal(url);
+        return { action: 'deny' };
     });
 
     window.webContents.once('dom-ready', () => {
@@ -245,7 +257,7 @@ export default function openAboutWindow(info_or_img_path: AboutWindowInfo | stri
 
     window.setMenu(null);
 
-    info = injectInfoFromPackageJson(info, app);
+    info = await injectInfoFromPackageJson(info, app);
 
     return window;
 }
