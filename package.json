@@ -4,21 +4,19 @@
   "description": "ESM 'About App' window for Electron application",
   "type": "module",
   "main": "src/index.js",
-  "typings": "src/index.d.ts",
+  "typings": "dist/src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "import": "./dist/src/index.js",
+      "require": "./dist/src/index.js"
     }
   },
   "files": [
-    "dist/",
-    "about.html",
-    "styles/ui.css"
+    "dist/"
   ],
   "scripts": {
     "dep": "npm install",
-    "build": "rm -rf dist && mkdir -p dist && cp about.html dist/ && cp styles/* dist/ && tsc -p src/ && node ./rename-preload.mjs",
+    "build": "rm -rf dist && mkdir -p dist/src && cp src/html/* dist/src/ && cp src/css/* dist/src/ && tsc -p src/ && node ./rename-preload.mjs",
     "watch": "tsc --watch -p src/",
     "tslint": "tslint -p ./src",
     "stylelint": "stylelint styles/*.css",

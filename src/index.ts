@@ -179,7 +179,7 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
 
     const index_html = 'file://' + path.join(base_path, 'about.html');
 
-    let preloadPath = path.join(base_path, 'src/preload-renderer.mjs');
+    let preloadPath = path.join(base_path, 'preload-renderer.mjs');
     if (info.custom_preload_path) {
         preloadPath = info.custom_preload_path;
     }

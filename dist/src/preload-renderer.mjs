@@ -85,7 +85,6 @@ function defaultPreloadRenderer(info, app_name, version) {
 registerPreloadRendererHook(defaultPreloadRenderer);
 ipcRenderer.on('about-window:info', (_, info, app_name, version) => {
     for (const hook of preloadRendererHooks) {
-        console.log('Executing Preload Renderer Hook', hook, info, app_name, version);
         hook(info, app_name, version);
     }
 });

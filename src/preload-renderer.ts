@@ -109,7 +109,7 @@ registerPreloadRendererHook(defaultPreloadRenderer);
 // Listen for the 'about-window:info' event and execute all registered hooks
 ipcRenderer.on('about-window:info', (_: any, info: AboutWindowInfo, app_name: string, version: string) => {
     for (const hook of preloadRendererHooks) {
-        console.log('Executing Preload Renderer Hook', hook, info, app_name, version);
+        // console.log('Executing Preload Renderer Hook', hook, info, app_name, version);
         hook(info, app_name, version);
     }
 });

@@ -51,7 +51,7 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
-                            about_page_dir: path.join(paths.pkgDir, '../dist'),
+                            about_page_dir: path.join(paths.pkgDir, '../dist/src/'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
                             open_devtools: process.env.NODE_ENV !== 'production',
@@ -65,7 +65,7 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
-                            about_page_dir: path.join(paths.pkgDir, '../dist'),
+                            about_page_dir: path.join(paths.pkgDir, '../dist/src/'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
                             use_version_info: [
@@ -82,7 +82,7 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
-                            about_page_dir: path.join(paths.pkgDir, '../dist'),
+                            about_page_dir: path.join(paths.pkgDir, '../dist/src/'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
                             win_options: {
@@ -100,7 +100,7 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
-                            about_page_dir: path.join(paths.pkgDir, '../dist'),
+                            about_page_dir: path.join(paths.pkgDir, '../dist/src/'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
                             custom_preload_path: path.join(paths.pkgDir, '../dist/example/custom-preload.mjs'),
