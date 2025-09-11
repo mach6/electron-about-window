@@ -17,9 +17,13 @@
     "outDir": "../dist",
     "declarationDir": "../dist",
     "esModuleInterop": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "*": ["src/*", "example/*"]
+    }
   },
   "include": [
     "**/*.ts"
-  ]
+, "../example/custom-preload.ts"  ]
 }

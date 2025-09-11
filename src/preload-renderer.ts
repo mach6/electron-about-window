@@ -1,11 +1,27 @@
 import { ipcRenderer, shell } from 'electron';
 import type { AboutWindowInfo } from './index.js';
 
-ipcRenderer.on('about-window:info', (_: any, info: AboutWindowInfo, app_name: string, version: string) => {
-    const open_home = () => shell.openExternal(info.homepage);
+// Define types for the hook functions
+export type PreloadRendererHook = (info: AboutWindowInfo, app_name: string, version: string) => void;
+
+// Create an array to store the hook functions
+const preloadRendererHooks: PreloadRendererHook[] = [];
+
+// Function to register hook functions
+export function registerPreloadRendererHook(hook: PreloadRendererHook) {
+    preloadRendererHooks.push(hook);
+}
+
+// Default implementation
+function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version: string) {
+    console.log('Default Preload Renderer Implementation');
+
     const content = info.use_inner_html ? 'innerHTML' : 'innerText';
     document.title = info.win_options.title || `About ${app_name}`;
 
+    const open_home = () => shell.openExternal(info.homepage);
+    document.title = info.win_options.title || `About ${app_name}`;
+    console.log(`Setting title to ${document.title}`);
     const title_elem = document.querySelector('.title') as HTMLHeadingElement;
     title_elem.innerText = `${app_name} ${version}`;
 
@@ -84,5 +100,16 @@ ipcRenderer.on('about-window:info', (_: any, info: AboutWindowInfo, app_name: st
         });
         buttons.appendChild(close_button);
         close_button.focus();
+    }
+}
+
+// Register the default implementation as the first hook
+registerPreloadRendererHook(defaultPreloadRenderer);
+
+// Listen for the 'about-window:info' event and execute all registered hooks
+ipcRenderer.on('about-window:info', (_: any, info: AboutWindowInfo, app_name: string, version: string) => {
+    for (const hook of preloadRendererHooks) {
+        console.log('Executing Preload Renderer Hook', hook, info, app_name, version);
+        hook(info, app_name, version);
     }
 });

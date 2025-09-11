@@ -40,6 +40,7 @@ export interface AboutWindowInfo {
     app?: Electron.App;
     BrowserWindow?: typeof Electron.BrowserWindow;
     ipcMain?: Electron.IpcMain;
+    custom_preload_path?: string;
 }
 
 declare namespace NodeJS {
@@ -138,9 +139,7 @@ async function injectInfoFromPackageJson(info: AboutWindowInfo, app: Electron.Ap
 
 function normalizeParam(info_or_img_path: AboutWindowInfo | string | undefined | null): AboutWindowInfo {
     if (!info_or_img_path) {
-        throw new Error(
-            'First parameter of openAboutWindow() must not be empty.',
-        );
+        throw new Error('First parameter of openAboutWindow() must not be empty.');
     }
 
     if (typeof info_or_img_path === 'string') {
@@ -148,9 +147,7 @@ function normalizeParam(info_or_img_path: AboutWindowInfo | string | undefined |
     } else {
         const info = info_or_img_path;
         if (!info.icon_path) {
-            throw new Error(
-                "First parameter of openAboutWindow() must have key 'icon_path'.",
-            );
+            throw new Error("First parameter of openAboutWindow() must have key 'icon_path'.");
         }
         return { ...info };
     }
@@ -182,6 +179,11 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
 
     const index_html = 'file://' + path.join(base_path, 'about.html');
 
+    let preloadPath = path.join(base_path, 'src/preload-renderer.mjs');
+    if (info.custom_preload_path) {
+        preloadPath = info.custom_preload_path;
+    }
+
     const options = Object.assign(
         {
             width: 400,
@@ -194,7 +196,7 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
                 // For security reasons, nodeIntegration is no longer true by default when using Electron v5 or later
                 // nodeIntegration can be safely enabled as long as the window source is not remote
                 nodeIntegration: true,
-                preload: path.join(base_path, 'preload-renderer.mjs'),
+                preload: preloadPath,
             },
         },
         info.win_options || {},

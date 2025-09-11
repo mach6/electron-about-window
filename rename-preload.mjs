@@ -4,19 +4,17 @@ import path from 'path';
 // This script renames any dist/...preload*.js => .mjs and fixes corresponding .map files.
 // It operates relative to project root and the tsconfig outDir (dist).
 
-const OUT_DIR = 'dist';
-
-async function run() {
+async function run(outDir) {
   try {
-    const files = await fs.readdir(OUT_DIR, { withFileTypes: true });
+    const files = await fs.readdir(outDir, { withFileTypes: true });
     for (const fi of files) {
       if (fi.isFile()) {
         const name = fi.name;
         // match files that include 'preload' and end with .js
         if (/preload.*\.js$/.test(name)) {
-          const jsPath = path.join(OUT_DIR, name);
+          const jsPath = path.join(outDir, name);
           const mjsName = name.replace(/\.js$/, '.mjs');
-          const mjsPath = path.join(OUT_DIR, mjsName);
+          const mjsPath = path.join(outDir, mjsName);
 
           // rename .js to .mjs
           await fs.rename(jsPath, mjsPath);
@@ -46,4 +44,5 @@ async function run() {
   }
 }
 
-run();
+run('dist/src');
+run('dist/example');

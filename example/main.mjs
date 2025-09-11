@@ -1,7 +1,7 @@
 import electron from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import openAboutWindow from '../dist/index.js';
+import openAboutWindow from '../dist/src/index.js';
 
 // directory where this main.mjs (example) lives (ESM-safe)
 const exampleDir = path.dirname(fileURLToPath(import.meta.url));
@@ -51,6 +51,7 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
+                            about_page_dir: path.join(paths.pkgDir, '../dist'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
                             open_devtools: process.env.NODE_ENV !== 'production',
@@ -64,6 +65,7 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
+                            about_page_dir: path.join(paths.pkgDir, '../dist'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
                             use_version_info: [
@@ -80,8 +82,29 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
+                            about_page_dir: path.join(paths.pkgDir, '../dist'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
+                            win_options: {
+                                parent: w,
+                                modal: true,
+                            },
+                            show_close_button: 'Close',
+                        });
+                    },
+                },
+                                {
+                    label: 'About This App (modal with close) (custom-preload)',
+                    click: async () => {
+                        const paths = await ensureExampleResources(exampleDir);
+                        if (!paths) return;
+                        openAboutWindow({
+                            icon_path: paths.iconPath,
+                            about_page_dir: path.join(paths.pkgDir, '../dist'),
+                            copyright: 'Copyright (c) 2025 mach6',
+                            package_json_dir: paths.pkgDir,
+                            custom_preload_path: path.join(paths.pkgDir, '../dist/example/custom-preload.mjs'),
+                            open_devtools: process.env.NODE_ENV !== 'production',
                             win_options: {
                                 parent: w,
                                 modal: true,
