@@ -1,0 +1,183 @@
+import { app as appMain, BrowserWindow as BrowserWindowMain, shell, ipcMain } from 'electron';
+import { statSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+async function loadPackageJson(pkg_path) {
+    try {
+        return (await import(pkg_path, { with: { type: 'json' } })).default;
+    }
+    catch (e) {
+        try {
+            return (await import(pkg_path)).default;
+        }
+        catch (e2) {
+            return null;
+        }
+    }
+}
+async function detectPackageJson(specified_dir, app) {
+    if (specified_dir) {
+        const pkg = await loadPackageJson(path.join(specified_dir, 'package.json'));
+        if (pkg !== null) {
+            return pkg;
+        }
+        else {
+            console.warn('about-window: package.json is not found in specified directory path: ' + specified_dir);
+        }
+    }
+    const app_name = app.name || app.getName();
+    let app_path = app.getAppPath();
+    if (app_path.endsWith('.asar')) {
+        app_path = path.dirname(app_path);
+    }
+    for (let i = 0; i < 5; i++) {
+        const p = path.join(app_path, 'package.json');
+        try {
+            const stats = statSync(p);
+            if (stats.isFile()) {
+                const pkg = await loadPackageJson(p);
+                if (pkg !== null) {
+                    if (pkg.productName === app_name || pkg.name === app_name) {
+                        return pkg;
+                    }
+                }
+            }
+        }
+        catch (e) {
+        }
+        app_path = path.join(app_path, '..');
+    }
+    return null;
+}
+async function injectInfoFromPackageJson(info, app) {
+    const pkg = await detectPackageJson(info.package_json_dir, app);
+    if (pkg === null) {
+        return info;
+    }
+    if (!info.product_name) {
+        info.product_name = pkg.productName;
+    }
+    if (!info.description) {
+        info.description = pkg.description;
+    }
+    if (!info.license && pkg.license) {
+        const l = pkg.license;
+        info.license = typeof l === 'string' ? l : l.type;
+    }
+    if (!info.homepage) {
+        info.homepage = pkg.homepage;
+    }
+    if (!info.bug_report_url && typeof pkg.bugs === 'object') {
+        info.bug_report_url = pkg.bugs.url;
+    }
+    if (info.use_inner_html === undefined) {
+        info.use_inner_html = false;
+    }
+    if (info.use_version_info === undefined) {
+        info.use_version_info = true;
+    }
+    return info;
+}
+function normalizeParam(info_or_img_path) {
+    if (!info_or_img_path) {
+        throw new Error('First parameter of openAboutWindow() must not be empty.');
+    }
+    if (typeof info_or_img_path === 'string') {
+        return { icon_path: info_or_img_path };
+    }
+    else {
+        const info = info_or_img_path;
+        if (!info.icon_path) {
+            throw new Error("First parameter of openAboutWindow() must have key 'icon_path'.");
+        }
+        return { ...info };
+    }
+}
+export default async function openAboutWindow(info_or_img_path) {
+    let window = null;
+    let info = normalizeParam(info_or_img_path);
+    const ipc = ipcMain ?? info.ipcMain;
+    const app = appMain ?? info.app;
+    const BrowserWindow = BrowserWindowMain ?? info.BrowserWindow;
+    if (!app || !BrowserWindow || !ipc) {
+        throw new Error("openAboutWindow() is called on non-main process. Set 'app', 'BrowserWindow' and 'ipcMain' properties in the 'info' argument of the function call");
+    }
+    if (window !== null) {
+        window.focus();
+        return window;
+    }
+    let base_path = info.about_page_dir;
+    if (base_path === undefined || base_path === null || !base_path.length) {
+        base_path = path.join(path.dirname(fileURLToPath(import.meta.url)), '.');
+    }
+    const index_html = 'file://' + path.join(base_path, 'about.html');
+    let preloadPath = path.join(base_path, 'src/preload-renderer.mjs');
+    if (info.custom_preload_path) {
+        preloadPath = info.custom_preload_path;
+    }
+    const options = Object.assign({
+        width: 400,
+        height: 400,
+        useContentSize: true,
+        titleBarStyle: 'hidden-inset',
+        show: !info.adjust_window_size,
+        icon: info.icon_path,
+        webPreferences: {
+            nodeIntegration: true,
+            preload: preloadPath,
+        },
+    }, info.win_options || {});
+    window = new BrowserWindow(options);
+    const on_win_adjust_req = (_, width, height, show_close_button) => {
+        if (height > 0 && width > 0) {
+            if (show_close_button) {
+                window.setContentSize(width, height + 40);
+            }
+            else {
+                window.setContentSize(width, height + 52);
+            }
+        }
+    };
+    const on_win_close_req = () => {
+        window.close();
+    };
+    ipc.on('about-window:adjust-window-size', on_win_adjust_req);
+    ipc.on('about-window:close-window', on_win_close_req);
+    window.once('closed', () => {
+        window = null;
+        ipc.removeListener('about-window:adjust-window-size', on_win_adjust_req);
+        ipc.removeListener('about-window:close-window', on_win_close_req);
+    });
+    window.loadURL(index_html);
+    window.webContents.on('will-navigate', (e, url) => {
+        e.preventDefault();
+        shell.openExternal(url);
+    });
+    window.webContents.setWindowOpenHandler(({ url }) => {
+        shell.openExternal(url);
+        return { action: 'deny' };
+    });
+    window.webContents.once('dom-ready', () => {
+        const win_title = info.win_options ? info.win_options.title : null;
+        delete info.win_options;
+        info.win_options = { title: win_title };
+        const app_name = info.product_name || app.name || app.getName();
+        const version = app.getVersion();
+        window.webContents.send('about-window:info', info, app_name, version);
+        if (info.open_devtools) {
+            if (process.versions.electron >= '1.4') {
+                window.webContents.openDevTools({ mode: 'detach' });
+            }
+            else {
+                window.webContents.openDevTools();
+            }
+        }
+    });
+    window.once('ready-to-show', () => {
+        window.show();
+    });
+    window.setMenu(null);
+    info = await injectInfoFromPackageJson(info, app);
+    return window;
+}
+//# sourceMappingURL=index.js.map
