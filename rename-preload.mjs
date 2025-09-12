@@ -44,5 +44,5 @@ async function run(outDir) {
   }
 }
 
-run('dist/src');
-run('dist/example');
+run('example');
+run('dist');

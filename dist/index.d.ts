@@ -1,17 +1,3 @@
-export interface LicenseEntry {
-    type: string;
-    url: string;
-}
-export interface PackageJson {
-    name?: string;
-    productName?: string;
-    description?: string;
-    homepage?: string;
-    license?: string | LicenseEntry;
-    bugs?: {
-        url: string;
-    };
-}
 export interface AboutWindowInfo {
     icon_path: string;
     product_name?: string;
@@ -33,6 +19,5 @@ export interface AboutWindowInfo {
     app?: Electron.App;
     BrowserWindow?: typeof Electron.BrowserWindow;
     ipcMain?: Electron.IpcMain;
-    custom_preload_path?: string;
 }
 export default function openAboutWindow(info_or_img_path: AboutWindowInfo | string): Promise<Electron.BrowserWindow>;

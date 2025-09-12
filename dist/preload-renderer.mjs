@@ -4,12 +4,12 @@ export function registerPreloadRendererHook(hook) {
     preloadRendererHooks.push(hook);
 }
 function defaultPreloadRenderer(info, app_name, version) {
-    console.log('Default Preload Renderer Implementation');
+    console.debug('default preload renderer implementation');
     const content = info.use_inner_html ? 'innerHTML' : 'innerText';
     document.title = info.win_options.title || `About ${app_name}`;
     const open_home = () => shell.openExternal(info.homepage);
     document.title = info.win_options.title || `About ${app_name}`;
-    console.log(`Setting title to ${document.title}`);
+    console.debug(`setting title to ${document.title}`);
     const title_elem = document.querySelector('.title');
     title_elem.innerText = `${app_name} ${version}`;
     if (info.homepage) {
@@ -37,7 +37,8 @@ function defaultPreloadRenderer(info, app_name, version) {
         bug_report.innerText = info.bug_link_text || 'Report an issue';
         bug_report.addEventListener('click', e => {
             e.preventDefault();
-            shell.openExternal(info.bug_report_url);
+            shell.openExternal(info.bug_report_url).then(() => {
+            });
         });
     }
     if (info.css_path) {
@@ -85,6 +86,7 @@ function defaultPreloadRenderer(info, app_name, version) {
 registerPreloadRendererHook(defaultPreloadRenderer);
 ipcRenderer.on('about-window:info', (_, info, app_name, version) => {
     for (const hook of preloadRendererHooks) {
+        console.debug('executing preload renderer hook', hook, info, app_name, version);
         hook(info, app_name, version);
     }
 });

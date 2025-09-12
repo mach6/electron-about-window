@@ -3,12 +3,12 @@ import { statSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-export interface LicenseEntry {
+interface LicenseEntry {
     type: string;
     url: string;
 }
 
-export interface PackageJson {
+interface PackageJson {
     name?: string;
     productName?: string;
     description?: string;
@@ -40,7 +40,6 @@ export interface AboutWindowInfo {
     app?: Electron.App;
     BrowserWindow?: typeof Electron.BrowserWindow;
     ipcMain?: Electron.IpcMain;
-    custom_preload_path?: string;
 }
 
 declare namespace NodeJS {
@@ -179,11 +178,6 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
 
     const index_html = 'file://' + path.join(base_path, 'about.html');
 
-    let preloadPath = path.join(base_path, 'preload-renderer.mjs');
-    if (info.custom_preload_path) {
-        preloadPath = info.custom_preload_path;
-    }
-
     const options = Object.assign(
         {
             width: 400,
@@ -196,7 +190,7 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
                 // For security reasons, nodeIntegration is no longer true by default when using Electron v5 or later
                 // nodeIntegration can be safely enabled as long as the window source is not remote
                 nodeIntegration: true,
-                preload: preloadPath,
+                preload: path.join(base_path, 'preload-renderer.mjs'),
             },
         },
         info.win_options || {},

@@ -14,14 +14,14 @@ export function registerPreloadRendererHook(hook: PreloadRendererHook) {
 
 // Default implementation
 function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version: string) {
-    console.log('Default Preload Renderer Implementation');
+    console.debug('default preload renderer implementation');
 
     const content = info.use_inner_html ? 'innerHTML' : 'innerText';
     document.title = info.win_options.title || `About ${app_name}`;
 
     const open_home = () => shell.openExternal(info.homepage);
     document.title = info.win_options.title || `About ${app_name}`;
-    console.log(`Setting title to ${document.title}`);
+    console.debug(`setting title to ${document.title}`);
     const title_elem = document.querySelector('.title') as HTMLHeadingElement;
     title_elem.innerText = `${app_name} ${version}`;
 
@@ -53,7 +53,9 @@ function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version
         bug_report.innerText = info.bug_link_text || 'Report an issue';
         bug_report.addEventListener('click', e => {
             e.preventDefault();
-            shell.openExternal(info.bug_report_url);
+            shell.openExternal(info.bug_report_url).then(() => {
+                // nothing left to do here
+            });
         });
     }
 
@@ -109,7 +111,7 @@ registerPreloadRendererHook(defaultPreloadRenderer);
 // Listen for the 'about-window:info' event and execute all registered hooks
 ipcRenderer.on('about-window:info', (_: any, info: AboutWindowInfo, app_name: string, version: string) => {
     for (const hook of preloadRendererHooks) {
-        // console.log('Executing Preload Renderer Hook', hook, info, app_name, version);
+        console.debug('executing preload renderer hook', hook, info, app_name, version);
         hook(info, app_name, version);
     }
 });

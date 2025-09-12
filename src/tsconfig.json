@@ -20,10 +20,10 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "*": ["src/*", "example/*"]
+      "*": ["src/*"]
     }
   },
   "include": [
     "**/*.ts"
-, "../example/custom-preload.ts"  ]
+  ]
 }

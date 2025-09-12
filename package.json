@@ -1,14 +1,18 @@
 {
-  "name": "about-window",
+  "name": "mach6-electron-about-window",
   "version": "2.0.0",
   "description": "ESM 'About App' window for Electron application",
   "type": "module",
   "main": "src/index.js",
-  "typings": "dist/src/index.d.ts",
+  "typings": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/src/index.js",
-      "require": "./dist/src/index.js"
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./preload-renderer": {
+        "import": "./dist/preload-renderer.mjs",
+        "types": "./dist/preload-renderer.d.ts"
     }
   },
   "files": [
@@ -16,7 +20,7 @@
   ],
   "scripts": {
     "dep": "npm install",
-    "build": "rm -rf dist && mkdir -p dist/src && cp src/html/* dist/src/ && cp src/css/* dist/src/ && tsc -p src/ && node ./rename-preload.mjs",
+    "build": "rm -rf dist && mkdir -p dist/ && cp src/html/* dist/ && cp src/css/* dist/ && tsc -p src/ && node ./rename-preload.mjs",
     "watch": "tsc --watch -p src/",
     "tslint": "tslint -p ./src",
     "stylelint": "stylelint styles/*.css",
@@ -44,9 +48,11 @@
     "url": "https://github.com/mach6/electron-about-window/issues"
   },
   "homepage": "https://github.com/mach6/electron-about-window#readme",
-  "devDependencies": {
+  "dependencies": {
     "@types/node": "^24.1.0",
-    "electron": "^33.4.11",
+    "electron": "^33.4.11"
+  },
+  "devDependencies": {
     "prettier": "^3.6.2",
     "stylelint": "^16.23.0",
     "stylelint-config-standard": "^39.0.0",
