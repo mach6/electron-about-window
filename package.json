@@ -23,7 +23,7 @@
     "build": "rm -rf dist && mkdir -p dist/ && cp src/html/* dist/ && cp src/css/* dist/ && tsc -p src/ && node ./rename-preload.mjs",
     "watch": "tsc --watch -p src/",
     "tslint": "tslint -p ./src",
-    "stylelint": "stylelint styles/*.css",
+    "stylelint": "stylelint src/css/*.css",
     "check-formatting": "prettier --check '**/*.ts'",
     "lint": "npm run tslint && npm run stylelint && npm run check-formatting",
     "prettier": "prettier --write '**/*.ts'",

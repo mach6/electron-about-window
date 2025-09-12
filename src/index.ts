@@ -1,23 +1,10 @@
-import { app as appMain, BrowserWindow as BrowserWindowMain, shell, ipcMain } from 'electron';
-import { statSync } from 'fs';
+import * as electron from 'electron';
+import type { IpcMainEvent } from 'electron';
+const { app: appMain, shell, ipcMain, BrowserWindow: BrowserWindowMain } = electron;
+
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-interface LicenseEntry {
-    type: string;
-    url: string;
-}
-
-interface PackageJson {
-    name?: string;
-    productName?: string;
-    description?: string;
-    homepage?: string;
-    license?: string | LicenseEntry;
-    bugs?: {
-        url: string;
-    };
-}
+import { injectInfoFromPackageJson } from './package.js';
 
 export interface AboutWindowInfo {
     icon_path: string;
@@ -42,99 +29,15 @@ export interface AboutWindowInfo {
     ipcMain?: Electron.IpcMain;
 }
 
-declare namespace NodeJS {
-    interface ProcessVersions {
-        [name: string]: string;
-    }
+export interface AboutWindowInfoReturnValue {
+    info: AboutWindowInfo;
+    app_name: string;
+    version: string;
 }
 
-async function loadPackageJson(pkg_path: string): Promise<PackageJson> {
-    try {
-        // Note: `with` is available from Chrome 126, V8 v12.6
-        // @ts-ignore
-        return (await import(pkg_path, { with: { type: 'json' } })).default;
-    } catch (e) {
-        // Fallback for older versions
-        try {
-            return (await import(pkg_path)).default;
-        } catch (e2) {
-            return null;
-        }
-    }
-}
-
-async function detectPackageJson(specified_dir: string, app: Electron.App) {
-    if (specified_dir) {
-        const pkg = await loadPackageJson(path.join(specified_dir, 'package.json'));
-        if (pkg !== null) {
-            return pkg;
-        } else {
-            console.warn('about-window: package.json is not found in specified directory path: ' + specified_dir);
-        }
-    }
-
-    const app_name = app.name || app.getName();
-
-    let app_path = app.getAppPath();
-    if (app_path.endsWith('.asar')) {
-        app_path = path.dirname(app_path);
-    }
-
-    for (let i = 0; i < 5; i++) {
-        const p = path.join(app_path, 'package.json');
-        try {
-            const stats = statSync(p);
-            if (stats.isFile()) {
-                const pkg = await loadPackageJson(p);
-                if (pkg !== null) {
-                    // In case of monorepo, check app name
-                    if (pkg.productName === app_name || pkg.name === app_name) {
-                        return pkg;
-                    }
-                }
-            }
-        } catch (e) {
-            // File not found. Ignored.
-        }
-        app_path = path.join(app_path, '..');
-    }
-
-    // Note: Not found.
-    return null;
-}
-
-async function injectInfoFromPackageJson(info: AboutWindowInfo, app: Electron.App) {
-    const pkg = await detectPackageJson(info.package_json_dir, app);
-    if (pkg === null) {
-        // Note: Give up.
-        return info;
-    }
-
-    if (!info.product_name) {
-        info.product_name = pkg.productName;
-    }
-    if (!info.description) {
-        info.description = pkg.description;
-    }
-    if (!info.license && pkg.license) {
-        const l = pkg.license;
-        info.license = typeof l === 'string' ? l : l.type;
-    }
-    if (!info.homepage) {
-        info.homepage = pkg.homepage;
-    }
-    if (!info.bug_report_url && typeof pkg.bugs === 'object') {
-        info.bug_report_url = pkg.bugs.url;
-    }
-    if (info.use_inner_html === undefined) {
-        info.use_inner_html = false;
-    }
-    if (info.use_version_info === undefined) {
-        info.use_version_info = true;
-    }
-
-    return info;
-}
+export const IPC_ABOUT_WINDOW_INFO = 'about-window:info';
+export const IPC_ABOUT_WINDOW_ADJUST = 'about-window:adjust-window-size';
+export const IPC_ABOUT_WINDOW_CLOSE = 'about-window:close-window';
 
 function normalizeParam(info_or_img_path: AboutWindowInfo | string | undefined | null): AboutWindowInfo {
     if (!info_or_img_path) {
@@ -152,7 +55,9 @@ function normalizeParam(info_or_img_path: AboutWindowInfo | string | undefined |
     }
 }
 
-export default async function openAboutWindow(info_or_img_path: AboutWindowInfo | string) {
+export default async function openAboutWindow(
+    info_or_img_path: AboutWindowInfo | string,
+): Promise<Electron.BrowserWindow> {
     let window: Electron.BrowserWindow = null;
     let info = normalizeParam(info_or_img_path);
 
@@ -161,7 +66,8 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
     const BrowserWindow = BrowserWindowMain ?? info.BrowserWindow;
     if (!app || !BrowserWindow || !ipc) {
         throw new Error(
-            "openAboutWindow() is called on non-main process. Set 'app', 'BrowserWindow' and 'ipcMain' properties in the 'info' argument of the function call",
+            "openAboutWindow() is called on non-main process. Set 'app', " +
+                "'BrowserWindow' and 'ipcMain' properties in the 'info' argument of the function call",
         );
     }
 
@@ -176,8 +82,6 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
         base_path = path.join(path.dirname(fileURLToPath(import.meta.url)), '.');
     }
 
-    const index_html = 'file://' + path.join(base_path, 'about.html');
-
     const options = Object.assign(
         {
             width: 400,
@@ -187,7 +91,6 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
             show: !info.adjust_window_size,
             icon: info.icon_path,
             webPreferences: {
-                // For security reasons, nodeIntegration is no longer true by default when using Electron v5 or later
                 // nodeIntegration can be safely enabled as long as the window source is not remote
                 nodeIntegration: true,
                 preload: path.join(base_path, 'preload-renderer.mjs'),
@@ -197,6 +100,10 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
     );
 
     window = new BrowserWindow(options);
+
+    window.setMenu(null);
+
+    info = await injectInfoFromPackageJson(info, app);
 
     const on_win_adjust_req = (_: unknown, width: number, height: number, show_close_button: boolean) => {
         if (height > 0 && width > 0) {
@@ -210,34 +117,22 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
         }
     };
     const on_win_close_req = () => {
-        window.close();
+        if (window) {
+            window.close();
+        }
     };
-    ipc.on('about-window:adjust-window-size', on_win_adjust_req);
-    ipc.on('about-window:close-window', on_win_close_req);
+
+    const index_html = 'file://' + path.join(base_path, 'about.html');
+    window.loadURL(index_html);
 
     window.once('closed', () => {
         window = null;
-        ipc.removeListener('about-window:adjust-window-size', on_win_adjust_req);
-        ipc.removeListener('about-window:close-window', on_win_close_req);
-    });
-    window.loadURL(index_html);
-
-    window.webContents.on('will-navigate', (e, url) => {
-        e.preventDefault();
-        shell.openExternal(url);
-    });
-    window.webContents.setWindowOpenHandler(({ url }) => {
-        shell.openExternal(url);
-        return { action: 'deny' };
+        // ipc.removeListener(IPC_ABOUT_WINDOW_ADJUST, on_win_adjust_req);
+        // ipc.removeListener(IPC_ABOUT_WINDOW_CLOSE, on_win_close_req);
+        ipc.removeAllListeners(IPC_ABOUT_WINDOW_INFO);
     });
 
-    window.webContents.once('dom-ready', () => {
-        const win_title = info.win_options ? info.win_options.title : null;
-        delete info.win_options;
-        info.win_options = { title: win_title };
-        const app_name = info.product_name || app.name || app.getName();
-        const version = app.getVersion();
-        window.webContents.send('about-window:info', info, app_name, version);
+    const load = () => {
         if (info.open_devtools) {
             if (process.versions.electron >= '1.4') {
                 window.webContents.openDevTools({ mode: 'detach' });
@@ -245,15 +140,37 @@ export default async function openAboutWindow(info_or_img_path: AboutWindowInfo 
                 window.webContents.openDevTools();
             }
         }
+    };
+
+    ipc.on(IPC_ABOUT_WINDOW_INFO, (event: IpcMainEvent) => {
+        const win_title = info.win_options ? info.win_options.title : null;
+        delete info.win_options;
+        info.win_options = { title: win_title };
+        const app_name = info.product_name || app.name || app.getName();
+        const version = app.getVersion();
+        event.sender.send(IPC_ABOUT_WINDOW_INFO, { info, app_name, version } as AboutWindowInfoReturnValue);
+    });
+
+    window.webContents.once('did-finish-load', () => {
+        ipc.once(IPC_ABOUT_WINDOW_ADJUST, on_win_adjust_req);
+        ipc.once(IPC_ABOUT_WINDOW_CLOSE, on_win_close_req);
+
+        load();
+    });
+
+    window.webContents.on('will-navigate', (e, url) => {
+        e.preventDefault();
+        shell.openExternal(url);
+    });
+
+    window.webContents.setWindowOpenHandler(({ url }) => {
+        shell.openExternal(url);
+        return { action: 'deny' };
     });
 
     window.once('ready-to-show', () => {
         window.show();
     });
-
-    window.setMenu(null);
-
-    info = await injectInfoFromPackageJson(info, app);
 
     return window;
 }

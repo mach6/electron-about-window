@@ -20,4 +20,12 @@ export interface AboutWindowInfo {
     BrowserWindow?: typeof Electron.BrowserWindow;
     ipcMain?: Electron.IpcMain;
 }
+export interface AboutWindowInfoReturnValue {
+    info: AboutWindowInfo;
+    app_name: string;
+    version: string;
+}
+export declare const IPC_ABOUT_WINDOW_INFO = "about-window:info";
+export declare const IPC_ABOUT_WINDOW_ADJUST = "about-window:adjust-window-size";
+export declare const IPC_ABOUT_WINDOW_CLOSE = "about-window:close-window";
 export default function openAboutWindow(info_or_img_path: AboutWindowInfo | string): Promise<Electron.BrowserWindow>;

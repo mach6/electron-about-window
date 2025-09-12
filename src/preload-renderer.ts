@@ -1,5 +1,11 @@
-import { ipcRenderer, shell } from 'electron';
-import type { AboutWindowInfo } from './index.js';
+import { ipcRenderer, shell, IpcRendererEvent } from 'electron';
+import {
+    AboutWindowInfo,
+    AboutWindowInfoReturnValue,
+    IPC_ABOUT_WINDOW_ADJUST,
+    IPC_ABOUT_WINDOW_CLOSE,
+    IPC_ABOUT_WINDOW_INFO,
+} from './index.js';
 
 // Define types for the hook functions
 export type PreloadRendererHook = (info: AboutWindowInfo, app_name: string, version: string) => void;
@@ -12,23 +18,55 @@ export function registerPreloadRendererHook(hook: PreloadRendererHook) {
     preloadRendererHooks.push(hook);
 }
 
+let resized: boolean = false;
+init();
+
+function init() {
+    // Register the default implementation as the first hook
+    registerPreloadRendererHook(defaultPreloadRenderer);
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ready);
+    } else {
+        ready();
+    }
+}
+
+function ready() {
+    ipcRenderer.send(IPC_ABOUT_WINDOW_INFO);
+    ipcRenderer.once(IPC_ABOUT_WINDOW_INFO, (_event: IpcRendererEvent, result: AboutWindowInfoReturnValue) => {
+        for (const hook of preloadRendererHooks) {
+            console.log('executing preload renderer hook', hook);
+            hook(result.info, result.app_name, result.version);
+        }
+    });
+}
+
 // Default implementation
 function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version: string) {
-    console.debug('default preload renderer implementation');
+    console.log('default preload renderer implementation');
 
     const content = info.use_inner_html ? 'innerHTML' : 'innerText';
     document.title = info.win_options.title || `About ${app_name}`;
 
-    const open_home = () => shell.openExternal(info.homepage);
+    const open_home = (e: Event) => {
+        console.log(`opening ${info.homepage}`);
+        e.preventDefault();
+        shell.openExternal(info.homepage);
+    };
+
     document.title = info.win_options.title || `About ${app_name}`;
-    console.debug(`setting title to ${document.title}`);
+    console.log(`setting title to ${document.title}`);
     const title_elem = document.querySelector('.title') as HTMLHeadingElement;
     title_elem.innerText = `${app_name} ${version}`;
 
     if (info.homepage) {
+        title_elem.removeEventListener('click', open_home);
         title_elem.addEventListener('click', open_home);
         title_elem.classList.add('clickable');
+
         const logo_elem = document.querySelector('.logo');
+        logo_elem.removeEventListener('click', open_home);
         logo_elem.addEventListener('click', open_home);
         logo_elem.classList.add('clickable');
     }
@@ -51,12 +89,17 @@ function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version
     if (info.bug_report_url) {
         const bug_report = document.querySelector('.bug-report-link') as HTMLDivElement;
         bug_report.innerText = info.bug_link_text || 'Report an issue';
-        bug_report.addEventListener('click', e => {
-            e.preventDefault();
+
+        const open_bugs = (e: Event) => {
+            console.log(`opening ${info.bug_report_url}`);
             shell.openExternal(info.bug_report_url).then(() => {
-                // nothing left to do here
+                // nothing to do
             });
-        });
+            e.preventDefault();
+        };
+
+        bug_report.removeEventListener('click', open_bugs);
+        bug_report.addEventListener('click', open_bugs);
     }
 
     if (info.css_path) {
@@ -69,10 +112,11 @@ function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version
         }
     }
 
-    if (info.adjust_window_size) {
+    if (info.adjust_window_size && !resized) {
         const height = document.body.scrollHeight;
         const width = document.body.scrollWidth;
-        ipcRenderer.send('about-window:adjust-window-size', height, width, !!info.show_close_button);
+        ipcRenderer.send(IPC_ABOUT_WINDOW_ADJUST, height, width, !!info.show_close_button);
+        resized = true;
     }
 
     if (!!info.use_version_info) {
@@ -96,22 +140,16 @@ function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version
         const buttons = document.querySelector('.buttons');
         const close_button = document.createElement('button');
         close_button.innerText = info.show_close_button;
-        close_button.addEventListener('click', e => {
+
+        const close_window = (e: Event) => {
+            console.log('closing...');
+            ipcRenderer.send(IPC_ABOUT_WINDOW_CLOSE);
             e.preventDefault();
-            ipcRenderer.send('about-window:close-window');
-        });
+        };
+
+        close_button.removeEventListener('click', close_window);
+        close_button.addEventListener('click', close_window);
         buttons.appendChild(close_button);
         close_button.focus();
     }
 }
-
-// Register the default implementation as the first hook
-registerPreloadRendererHook(defaultPreloadRenderer);
-
-// Listen for the 'about-window:info' event and execute all registered hooks
-ipcRenderer.on('about-window:info', (_: any, info: AboutWindowInfo, app_name: string, version: string) => {
-    for (const hook of preloadRendererHooks) {
-        console.debug('executing preload renderer hook', hook, info, app_name, version);
-        hook(info, app_name, version);
-    }
-});
