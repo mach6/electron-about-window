@@ -1,5 +1,5 @@
 {
-  "name": "electron-about-window-example",
+  "name": "mach6-electron-about-window-example",
   "productName": "Example for about-window",
   "version": "1.0.0",
   "description": "Example for about-window npm package",
@@ -7,9 +7,34 @@
   "bugs": {
     "url": "https://github.com/mach6/electron-about-window/issues"
   },
+  "type": "module",
   "main": "main.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dep": "npm install",
+    "build": "tsc -b tsconfig.json && mv dist/custom-preload.js dist/custom-preload.mjs",
+    "start": "npm run dep && npm run build && electron .",
+    "watch": "tsc --watch -p ./",
+    "tslint": "tslint -p ./",
+    "check-formatting": "prettier --check '**/*.ts'",
+    "lint": "npm run tslint && npm run check-formatting",
+    "prettier": "prettier --write '**/*.ts'"
   },
   "author": "mach6",
-  "license": "MIT"}
+  "license": "MIT",
+  "dependencies": {
+    "mach6-electron-about-window": "git+https://github.com/mach6/electron-about-window#master"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "electron": "^35.7.5",
+    "prettier": "^3.6.2",
+    "stylelint": "^16.23.0",
+    "stylelint-config-standard": "^39.0.0",
+    "tslint": "^6.1.2",
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,6 +1,7 @@
-import { registerPreloadRendererHook } from '../src/preload-renderer.js';
-import { AboutWindowInfo } from '../src/index.js';
+import { AboutWindowInfo } from 'mach6-electron-about-window';
+import { registerPreloadRendererHook } from 'mach6-electron-about-window/preload-renderer';
 
+// Example: A custom hook that modifies the DOM `title` element color to red.
 registerPreloadRendererHook((_info: AboutWindowInfo, _app_name: string, _version: string) => {
     console.log('Custom Preload Renderer Hook');
     // Modify the DOM or perform other actions here

@@ -1,12 +1,22 @@
 import electron from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import openAboutWindow from '../dist/src/index.js';
+import openAboutWindow from 'mach6-electron-about-window';
 
 // directory where this main.mjs (example) lives (ESM-safe)
 const exampleDir = path.dirname(fileURLToPath(import.meta.url));
 
 const { app, Menu, BrowserWindow, dialog } = electron;
+
+/**
+ * The "view" sub-menu
+ */
+const viewMenu = [
+    {
+        label: 'View',
+        submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }],
+    },
+];
 
 app.once('window-all-closed', function () {
     app.quit();
@@ -51,10 +61,11 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
-                            about_page_dir: path.join(paths.pkgDir, '../dist/src/'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
                             open_devtools: process.env.NODE_ENV !== 'production',
+                        }).then((win) => {
+                            win.setMenu(Menu.buildFromTemplate([...viewMenu]));
                         });
                     },
                 },
@@ -65,13 +76,15 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
-                            about_page_dir: path.join(paths.pkgDir, '../dist/src/'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
+                            open_devtools: process.env.NODE_ENV !== 'production',
                             use_version_info: [
                                 ['my version entry 1', 'a.b.c'],
                                 ['my version entry 2', 'x.y.z'],
                             ],
+                        }).then((win) => {
+                            win.setMenu(Menu.buildFromTemplate([...viewMenu]));
                         });
                     },
                 },
@@ -82,14 +95,16 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
-                            about_page_dir: path.join(paths.pkgDir, '../dist/src/'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
+                            open_devtools: process.env.NODE_ENV !== 'production',
                             win_options: {
                                 parent: w,
                                 modal: true,
                             },
                             show_close_button: 'Close',
+                        }).then((win) => {
+                            win.setMenu(Menu.buildFromTemplate([...viewMenu]));
                         });
                     },
                 },
@@ -100,16 +115,20 @@ app.once('ready', function () {
                         if (!paths) return;
                         openAboutWindow({
                             icon_path: paths.iconPath,
-                            about_page_dir: path.join(paths.pkgDir, '../dist/src/'),
                             copyright: 'Copyright (c) 2025 mach6',
                             package_json_dir: paths.pkgDir,
-                            custom_preload_path: path.join(paths.pkgDir, '../dist/example/custom-preload.mjs'),
                             open_devtools: process.env.NODE_ENV !== 'production',
                             win_options: {
                                 parent: w,
                                 modal: true,
+                                webPreferences: {
+                                    preload: path.join(paths.pkgDir, 'dist/custom-preload.mjs'),
+                                    nodeIntegration: true,
+                                }
                             },
                             show_close_button: 'Close',
+                        }).then((win) => {
+                            win.setMenu(Menu.buildFromTemplate([...viewMenu]));
                         });
                     },
                 },
