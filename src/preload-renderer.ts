@@ -50,8 +50,8 @@ function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version
     document.title = info.win_options.title || `About ${app_name}`;
 
     const open_home = (e: Event) => {
-        console.log(`opening ${info.homepage}`);
         e.preventDefault();
+        console.log(`opening ${info.homepage}`);
         shell.openExternal(info.homepage);
     };
 
@@ -91,11 +91,11 @@ function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version
         bug_report.innerText = info.bug_link_text || 'Report an issue';
 
         const open_bugs = (e: Event) => {
+            e.preventDefault();
             console.log(`opening ${info.bug_report_url}`);
             shell.openExternal(info.bug_report_url).then(() => {
                 // nothing to do
             });
-            e.preventDefault();
         };
 
         bug_report.removeEventListener('click', open_bugs);
@@ -142,9 +142,9 @@ function defaultPreloadRenderer(info: AboutWindowInfo, app_name: string, version
         close_button.innerText = info.show_close_button;
 
         const close_window = (e: Event) => {
+            e.preventDefault();
             console.log('closing...');
             ipcRenderer.send(IPC_ABOUT_WINDOW_CLOSE);
-            e.preventDefault();
         };
 
         close_button.removeEventListener('click', close_window);

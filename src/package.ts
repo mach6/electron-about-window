@@ -1,5 +1,5 @@
 import path from 'path';
-import { statSync } from 'fs';
+import { statSync, readFileSync } from 'fs';
 import { AboutWindowInfo } from './index';
 
 interface LicenseEntry {
@@ -20,16 +20,10 @@ interface PackageJson {
 
 async function loadPackageJson(pkg_path: string): Promise<PackageJson> {
     try {
-        // Note: `with` is available from Chrome 126, V8 v12.6
-        // @ts-ignore
-        return (await import(pkg_path, { with: { type: 'json' } })).default;
+        const data = readFileSync(pkg_path, 'utf-8');
+        return JSON.parse(data);
     } catch (e) {
-        // Fallback for older versions
-        try {
-            return (await import(pkg_path)).default;
-        } catch (e2) {
-            return null;
-        }
+        return null;
     }
 }
 

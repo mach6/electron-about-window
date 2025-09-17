@@ -1,16 +1,12 @@
 import path from 'path';
-import { statSync } from 'fs';
+import { statSync, readFileSync } from 'fs';
 async function loadPackageJson(pkg_path) {
     try {
-        return (await import(pkg_path, { with: { type: 'json' } })).default;
+        const data = readFileSync(pkg_path, 'utf-8');
+        return JSON.parse(data);
     }
     catch (e) {
-        try {
-            return (await import(pkg_path)).default;
-        }
-        catch (e2) {
-            return null;
-        }
+        return null;
     }
 }
 async function detectPackageJson(specified_dir, app) {

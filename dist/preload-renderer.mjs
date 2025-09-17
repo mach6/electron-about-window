@@ -29,8 +29,8 @@ function defaultPreloadRenderer(info, app_name, version) {
     const content = info.use_inner_html ? 'innerHTML' : 'innerText';
     document.title = info.win_options.title || `About ${app_name}`;
     const open_home = (e) => {
-        console.log(`opening ${info.homepage}`);
         e.preventDefault();
+        console.log(`opening ${info.homepage}`);
         shell.openExternal(info.homepage);
     };
     document.title = info.win_options.title || `About ${app_name}`;
@@ -63,10 +63,10 @@ function defaultPreloadRenderer(info, app_name, version) {
         const bug_report = document.querySelector('.bug-report-link');
         bug_report.innerText = info.bug_link_text || 'Report an issue';
         const open_bugs = (e) => {
+            e.preventDefault();
             console.log(`opening ${info.bug_report_url}`);
             shell.openExternal(info.bug_report_url).then(() => {
             });
-            e.preventDefault();
         };
         bug_report.removeEventListener('click', open_bugs);
         bug_report.addEventListener('click', open_bugs);
@@ -107,9 +107,9 @@ function defaultPreloadRenderer(info, app_name, version) {
         const close_button = document.createElement('button');
         close_button.innerText = info.show_close_button;
         const close_window = (e) => {
+            e.preventDefault();
             console.log('closing...');
             ipcRenderer.send(IPC_ABOUT_WINDOW_CLOSE);
-            e.preventDefault();
         };
         close_button.removeEventListener('click', close_window);
         close_button.addEventListener('click', close_window);
