@@ -5,5 +5,6 @@ A fork of [electron-about-window](https://github.com/rhysd/electron-about-window
 *  is ESM
 * runs in a BrowserWindow preload
 * allows for preload customization
-[MIT License](/LICENSE.txt).
 
+  
+[MIT License](/LICENSE.txt).
