@@ -4,7 +4,6 @@ ESM 'About This App' Window for [Electron](https://github.com/atom/electron) App
 A fork of [electron-about-window](https://github.com/rhysd/electron-about-window) by [rhysd](https://github.com/rhysd) that;
 *  is ESM
 * runs in a BrowserWindow preload
-* allows for customer on-before and/or on-after hooks into the preload code
-
+* allows for preload customization
 [MIT License](/LICENSE.txt).
 
