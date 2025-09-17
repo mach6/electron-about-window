@@ -1,45 +1,36 @@
 import path from 'path';
 import { statSync, readFileSync } from 'fs';
-async function loadPackageJson(pkg_path) {
-    try {
-        const data = readFileSync(pkg_path, 'utf-8');
-        return JSON.parse(data);
-    }
-    catch (e) {
-        return null;
-    }
-}
 async function detectPackageJson(specified_dir, app) {
+    let pkg_path;
     if (specified_dir) {
-        const pkg = await loadPackageJson(path.join(specified_dir, 'package.json'));
-        if (pkg !== null) {
-            return pkg;
+        pkg_path = path.join(specified_dir, 'package.json');
+        try {
+            return JSON.parse(readFileSync(pkg_path, 'utf-8'));
         }
-        else {
+        catch {
             console.warn('about-window: package.json is not found in specified directory path: ' + specified_dir);
         }
     }
-    const app_name = app.name || app.getName();
-    let app_path = app.getAppPath();
-    if (app_path.endsWith('.asar')) {
-        app_path = path.dirname(app_path);
+    const asar_app_path = path.join(app.getAppPath(), 'package.json');
+    try {
+        return JSON.parse(readFileSync(asar_app_path, 'utf-8'));
     }
-    for (let i = 0; i < 5; i++) {
-        const p = path.join(app_path, 'package.json');
-        try {
-            const stats = statSync(p);
-            if (stats.isFile()) {
-                const pkg = await loadPackageJson(p);
-                if (pkg !== null) {
-                    if (pkg.productName === app_name || pkg.name === app_name) {
-                        return pkg;
-                    }
+    catch {
+        let app_path = app.getAppPath();
+        if (app_path.endsWith('.asar')) {
+            app_path = path.dirname(app_path);
+        }
+        for (let i = 0; i < 5; i++) {
+            const p = path.join(app_path, 'package.json');
+            try {
+                const stats = statSync(p);
+                if (stats.isFile()) {
+                    return JSON.parse(readFileSync(p, 'utf-8'));
                 }
             }
+            catch { }
+            app_path = path.join(app_path, '..');
         }
-        catch (e) {
-        }
-        app_path = path.join(app_path, '..');
     }
     return null;
 }
