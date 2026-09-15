@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.1.0",
-    "electron": "^35.7.5",
+    "electron": "^39.8.10",
     "prettier": "^3.6.2",
     "stylelint": "^16.23.0",
     "stylelint-config-standard": "^39.0.0",
