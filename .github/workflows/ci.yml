@@ -1,0 +1,86 @@
+---
+name: CI
+
+# Validates a change before it is merged (every pull request to master) and after (every push to master).
+# The package is installed from git by its users (git+https://github.com/mach6/electron-about-window#master), so
+# the committed dist/ is what they run: it must be what the source builds to.
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # a new push to a pull request replaces the run in progress. master runs are all kept.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    name: Lint, build, example, package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            example/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        # tslint, stylelint and the prettier check
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Check that dist/ is up to date
+        # dist/ is committed, run `npm run build` and commit it when this fails
+        run: |
+          git add --intent-to-add dist
+          if ! git diff --exit-code --stat -- dist; then
+            echo "::error::dist/ is not what 'npm run build' produces from src/. Run 'npm run build' and commit dist/."
+            exit 1
+          fi
+
+      - name: Type check the example
+        # the example uses the package from this checkout, the way an app uses it
+        run: |
+          npm ci --prefix example
+          npx --prefix example tsc -p example --noEmit
+
+      - name: Check that the package does not bring its own Electron
+        # electron is a peer dependency: an app that installs the package gets one copy of Electron, its own
+        run: |
+          set -euo pipefail
+          tarball="$(pwd)/$(npm pack --silent)"
+          # the lowest Electron the package supports: a dependency on a newer Electron would not be satisfied by it,
+          # and npm would install the package's own copy next to it
+          electron="$(node -p "((require('./package.json').peerDependencies || {}).electron || '>=33.0.0').replace(/^[^0-9]*/, '')")"
+          app="$(mktemp -d)"
+          cd "$app"
+          npm init -y > /dev/null
+          ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install --no-audit --no-fund "electron@${electron}" "$tarball"
+          npm ls electron --all
+          copies="$(find . -type f -path '*/node_modules/electron/package.json' | wc -l)"
+          if [ "$copies" -ne 1 ]; then
+            find . -type f -path '*/node_modules/electron/package.json'
+            echo "::error::$copies copies of electron are installed, the app should have one"
+            exit 1
+          fi

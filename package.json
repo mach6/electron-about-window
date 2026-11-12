@@ -48,11 +48,12 @@
     "url": "https://github.com/mach6/electron-about-window/issues"
   },
   "homepage": "https://github.com/mach6/electron-about-window#readme",
-  "dependencies": {
-    "@types/node": "^24.1.0",
-    "electron": "^39.8.10"
+  "peerDependencies": {
+    "electron": ">=33.0.0"
   },
   "devDependencies": {
+    "@types/node": "^24.1.0",
+    "electron": "^39.8.10",
     "prettier": "^3.6.2",
     "stylelint": "^16.23.0",
     "stylelint-config-standard": "^39.0.0",
