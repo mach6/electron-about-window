@@ -28,7 +28,8 @@ async function detectPackageJson(specified_dir, app) {
                     return JSON.parse(readFileSync(p, 'utf-8'));
                 }
             }
-            catch { }
+            catch {
+            }
             app_path = path.join(app_path, '..');
         }
     }

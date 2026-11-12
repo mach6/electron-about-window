@@ -23,7 +23,7 @@
   "author": "mach6",
   "license": "MIT",
   "dependencies": {
-    "mach6-electron-about-window": "git+https://github.com/mach6/electron-about-window#master"
+    "mach6-electron-about-window": "file:.."
   },
   "engines": {
     "node": ">=18"

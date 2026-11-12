@@ -31,7 +31,9 @@ async function detectPackageJson(specified_dir: string, app: Electron.App) {
                 if (stats.isFile()) {
                     return JSON.parse(readFileSync(p, 'utf-8'));
                 }
-            } catch {}
+            } catch {
+                // not there, look in the parent directory
+            }
             app_path = path.join(app_path, '..');
         }
     }
